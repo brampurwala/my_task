@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:my_practical_task/screens/service/validators.dart';
 import 'package:my_practical_task/screens/widgets/theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -22,14 +23,20 @@ class _LoginState extends State<Login> {
   TextEditingController _emailController = TextEditingController();
   TextEditingController _passwordController = TextEditingController();
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  User?user;
 
-  Future<GetBar<Object>?> _singIn() async {
+  Future<User?> _singIn() async {
     try {
-      await FirebaseAuth.instance
+     UserCredential userCredential = await _auth
           .createUserWithEmailAndPassword(email: _emailController.text, password: _passwordController.text);
-      return null;
+user = userCredential.user;
     } on FirebaseAuthException catch (ex) {
-      return GetBar(backgroundColor: Colors.red,message: ex.message,duration: Duration(seconds: 2),);
+      if(ex.code == "user-not-found"){
+        GetBar(backgroundColor: Colors.red,message: "No email found",duration: Duration(seconds: 2));
+      } else if(ex.code == "wrong-password"){
+          GetBar(backgroundColor: Colors.red,message: "Wrong password",duration: Duration(seconds: 2));
+        }
+      return user;
     }
 
   }
@@ -71,12 +78,7 @@ class _LoginState extends State<Login> {
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: _emailController,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter valid email id';
-                          }
-                          return null;
-                        },
+                        validator: (value) => Validator.validateEmail(email: value.toString()),
                         decoration: const InputDecoration(
                             border: OutlineInputBorder(),
                             hintText: "Please enter your email"
@@ -95,12 +97,7 @@ class _LoginState extends State<Login> {
                       TextFormField(
                         obscureText: _hidePassword,
                         controller: _passwordController,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter valid password';
-                          }
-                          return null;
-                        },
+                        validator: (value) => Validator.validatePassword(password: value.toString()),
                         keyboardType: TextInputType.text,
                         inputFormatters: [FilteringTextInputFormatter.deny(RegExp(r'^[ -.,]'))],
                         decoration:  InputDecoration(
@@ -131,7 +128,20 @@ class _LoginState extends State<Login> {
                               child: Checkbox(
                                   activeColor: const Color(0xff00C8E8),
                                   value: _isChecked,
-                                  onChanged: _handleRemember(_isChecked)),
+                                  onChanged: (bool? value){
+                                    _isChecked = value!;
+                                    SharedPreferences.getInstance().then(
+                                          (prefs) {
+                                        prefs.setBool("remember_me", value);
+                                        prefs.setString('email', _emailController.text);
+                                        prefs.setString('password', _passwordController.text);
+                                      },
+                                    );
+                                    setState(() {
+                                      _isChecked = value!;
+                                    });
+
+                                  }),
                             )),
                         const SizedBox(width: 10.0),
                         const Text("Remember Me",
@@ -151,12 +161,15 @@ class _LoginState extends State<Login> {
                           child: MaterialButton(
                             minWidth: double.infinity,
                             height: 60,
-                            onPressed: () {
+                            onPressed: ()async {
 
                               if(_loginFormKey.currentState!.validate()){
                                 print('validate');
-                                _singIn();
-                                  Get.toNamed("/dashboard");
+                                UserCredential user = await _auth.signInWithEmailAndPassword(email: _emailController.text, password: _passwordController.text);
+                                // _singIn();
+                               if(user != null){
+                                 Get.toNamed("/dashboard");
+                               }
                               }else{
                                 GetBar(
                                   message: "Email id/Password is required",

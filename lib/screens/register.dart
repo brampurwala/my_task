@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:my_practical_task/screens/service/validators.dart';
 import 'package:my_practical_task/screens/widgets/theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -64,12 +65,7 @@ class _RegisterState extends State<Register> {
                       TextFormField(
                         keyboardType: TextInputType.text,
                         inputFormatters: [FilteringTextInputFormatter.deny(RegExp(r'^[ -.,]'))],
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter valid name';
-                          }
-                          return null;
-                        },
+                        validator: (value) => Validator.validateName(name: value.toString()),
                         controller: _nameController,
                         decoration: const InputDecoration(
                             border: OutlineInputBorder(),
@@ -87,12 +83,7 @@ class _RegisterState extends State<Register> {
                         controller: _emailController,
                         keyboardType: TextInputType.text,
                         inputFormatters: [FilteringTextInputFormatter.deny(RegExp(r'^[ -.,]'))],
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter valid email';
-                          }
-                          return null;
-                        },
+                        validator: (value) => Validator.validateEmail(email: value.toString()),
                         decoration:  const InputDecoration(
                           border: OutlineInputBorder(),
                           hintText: "Enter your email",
@@ -108,12 +99,7 @@ class _RegisterState extends State<Register> {
                       TextFormField(
                         controller: _phoneController,
                         keyboardType: TextInputType.number,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter valid phone number';
-                          }
-                          return null;
-                        },
+                        validator: (value) => Validator.validatePassword(password: value.toString()),
                         inputFormatters: [FilteringTextInputFormatter.deny(RegExp(r'^[ -.,]'))],
                         decoration:  const InputDecoration(
                           border: OutlineInputBorder(),
@@ -159,9 +145,22 @@ class _RegisterState extends State<Register> {
                                   unselectedWidgetColor: Colors.red, // Your color
                               ),
                               child: Checkbox(
-                                  activeColor: Colors.black,
+                                  activeColor: const Color(0xff00C8E8),
                                   value: _isChecked,
-                                  onChanged: _handleRemember(_isChecked)),
+                                  onChanged: (bool? value){
+                                    _isChecked = value!;
+                                    SharedPreferences.getInstance().then(
+                                          (prefs) {
+                                        prefs.setBool("remember_me", value);
+                                        prefs.setString('email', _emailController.text);
+                                        prefs.setString('password', _passwordController.text);
+                                      },
+                                    );
+                                    setState(() {
+                                      _isChecked = value!;
+                                    });
+
+                                  }),
                             )),
                         const SizedBox(width: 10.0),
                         const Text("Remember Me",

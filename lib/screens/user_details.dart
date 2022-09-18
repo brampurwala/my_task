@@ -12,14 +12,7 @@ class UserDetails extends StatefulWidget {
 
 class _UserDetailsState extends State<UserDetails> {
   User? user = FirebaseAuth.instance.currentUser;
-  static Future<GetBar<Object>?> signOut() async {
-    try {
-      await FirebaseAuth.instance.signOut();
-      return null;
-    } on FirebaseAuthException catch (ex) {
-      return GetBar(backgroundColor: Colors.red,message: ex.message,duration: Duration(seconds: 2),);
-    }
-  }
+
   @override
   Widget build(BuildContext context) {
     return  Scaffold(
@@ -78,9 +71,9 @@ class _UserDetailsState extends State<UserDetails> {
                       Icons.login,
                       color: Color(0xff0231c8),
                     ),
-                    onPressed: () {
-
-                      signOut();
+                    onPressed: () async {
+await FirebaseAuth.instance.signOut();
+Get.offAllNamed("/login");
                     },
                   ),
                 ],),
